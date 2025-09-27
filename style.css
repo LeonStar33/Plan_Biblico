@@ -107,3 +107,11 @@ h3{ margin:14px 4px 8px; }
 .volver-btn:hover {
   background: #b0e600;
 }
+.min{
+    margin:0 0 7px; font-size:10px;
+}
+.acciones{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr); /* 👈 siempre 3 columnas */
+  gap:10px;
+}
