@@ -1,225 +1,236 @@
-// Estado global
+// ===================================
+// CONFIGURACIÓN Y VARIABLES GLOBALES
+// ===================================
+const version = "es-vbl"; // versión preferida de la Biblia (API)
 let biblia = [];
 let progreso = JSON.parse(localStorage.getItem("progreso") || "{}");
 
-// Mapa EN -> ES
-const nombresLibros = {
-  "Genesis":"Génesis","Exodus":"Éxodo","Leviticus":"Levítico","Numbers":"Números","Deuteronomy":"Deuteronomio",
-  "Joshua":"Josué","Judges":"Jueces","Ruth":"Rut","1 Samuel":"1 Samuel","2 Samuel":"2 Samuel",
-  "1 Kings":"1 Reyes","2 Kings":"2 Reyes","1 Chronicles":"1 Crónicas","2 Chronicles":"2 Crónicas","Ezra":"Esdras",
-  "Nehemiah":"Nehemías","Esther":"Ester","Job":"Job","Psalms":"Salmos","Proverbs":"Proverbios",
-  "Ecclesiastes":"Eclesiastés","Song of Solomon":"Cantares","Isaiah":"Isaías","Jeremiah":"Jeremías",
-  "Lamentations":"Lamentaciones","Ezekiel":"Ezequiel","Daniel":"Daniel","Hosea":"Oseas","Joel":"Joel",
-  "Amos":"Amós","Obadiah":"Abdías","Jonah":"Jonás","Micah":"Miqueas","Nahum":"Nahúm","Habakkuk":"Habacuc",
-  "Zephaniah":"Sofonías","Haggai":"Hageo","Zechariah":"Zacarías","Malachi":"Malaquías","Matthew":"Mateo",
-  "Mark":"Marcos","Luke":"Lucas","John":"Juan","Acts":"Hechos","Romans":"Romanos","1 Corinthians":"1 Corintios",
-  "2 Corinthians":"2 Corintios","Galatians":"Gálatas","Ephesians":"Efesios","Philippians":"Filipenses",
-  "Colossians":"Colosenses","1 Thessalonians":"1 Tesalonicenses","2 Thessalonians":"2 Tesalonicenses",
-  "1 Timothy":"1 Timoteo","2 Timothy":"2 Timoteo","Titus":"Tito","Philemon":"Filemón","Hebrews":"Hebreos",
-  "James":"Santiago","1 Peter":"1 Pedro","2 Peter":"2 Pedro","1 John":"1 Juan","2 John":"2 Juan",
-  "3 John":"3 Juan","Jude":"Judas","Revelation":"Apocalipsis"
+// ==========================
+// MAPA DE LIBROS (Español → API)
+// ==========================
+const librosMap = {
+  "Génesis": "génesis",
+  "Éxodo": "éxodo",
+  "Levítico": "levítico",
+  "Números": "números",
+  "Deuteronomio": "deuteronomio",
+  "Josué": "josué",
+  "Jueces": "jueces",
+  "Rut": "rut",
+  "1 Samuel": "1samuel",
+  "2 Samuel": "2samuel",
+  "1 Reyes": "1reyes",
+  "2 Reyes": "2reyes",
+  "1 Crónicas": "1crónicas",
+  "2 Crónicas": "2crónicas",
+  "Esdras": "esdras",
+  "Nehemías": "nehemías",
+  "Ester": "ester",
+  "Job": "job",
+  "Salmos": "salmos",
+  "Proverbios": "proverbios",
+  "Eclesiastés": "eclesiastés",
+  "Cantares": "cantares",
+  "Isaías": "isaías",
+  "Jeremías": "jeremías",
+  "Lamentaciones": "lamentaciones",
+  "Ezequiel": "ezequiel",
+  "Daniel": "daniel",
+  "Oseas": "oseas",
+  "Joel": "joel",
+  "Amós": "amós",
+  "Abdías": "abdías",
+  "Jonás": "jonás",
+  "Miqueas": "miqueas",
+  "Nahúm": "nahúm",
+  "Habacuc": "habacuc",
+  "Sofonías": "sofonías",
+  "Hageo": "hageo",
+  "Zacarías": "zacarías",
+  "Malaquías": "malaquías",
+  "Mateo": "mateo",
+  "Marcos": "marcos",
+  "Lucas": "lucas",
+  "Juan": "juan",
+  "Hechos": "hechos",
+  "Romanos": "romanos",
+  "1 Corintios": "1corintios",
+  "2 Corintios": "2corintios",
+  "Gálatas": "gálatas",
+  "Efesios": "efesios",
+  "Filipenses": "filipenses",
+  "Colosenses": "colosenses",
+  "1 Tesalonicenses": "1tesalonicenses",
+  "2 Tesalonicenses": "2tesalonicenses",
+  "1 Timoteo": "1timoteo",
+  "2 Timoteo": "2timoteo",
+  "Tito": "tito",
+  "Filemón": "filemón",
+  "Hebreos": "hebreos",
+  "Santiago": "santiago",
+  "1 Pedro": "1pedro",
+  "2 Pedro": "2pedro",
+  "1 Juan": "1juan",
+  "2 Juan": "2juan",
+  "3 Juan": "3juan",
+  "Judas": "judas",
+  "Apocalipsis": "apocalipsis"
 };
 
-// Índices
-const IDX_GENESIS = 0;
-const IDX_PSALMS = 18;
-const IDX_PROVERBS = 19;
-const IDX_NT_START = 39; // Mateo
-const IDX_NT_END   = 65; // Apocalipsis
+// =========================================================
+// CARGA DEL PLAN PRINCIPAL (usa API o fallback local)
+// =========================================================
+function iniciarPlan() {
+  const diasCont = document.getElementById("dias");
+  diasCont.innerHTML = "<p>Cargando plan...</p>";
 
-// Utilidades
-const nombreES = (idx) => (nombresLibros[biblia[idx].name] || biblia[idx].name);
-const capLen   = (idx) => biblia[idx].chapters.length;
+  // Intentar cargar plan básico desde local o API
+  try {
+    fetch("es_rvr.json") // respaldo local
+      .then((r) => r.json())
+      .then((d) => {
+        biblia = d;
+        mostrarPlan();
+      })
+      .catch(() => {
+        diasCont.innerHTML =
+          "<p>No se pudo cargar el plan. Verifica tu conexión o el archivo local.</p>";
+      });
+  } catch (e) {
+    diasCont.innerHTML = "<p>Error al iniciar el plan.</p>";
+  }
+}
 
-// Cargar biblia
-fetch("es_rvr.json")
-  .then(r => r.json())
-  .then(d => {
-    biblia = d;
-    mostrarPlan();
-  })
-  .catch(err => {
-    console.error("No se pudo cargar es_rvr.json", err);
-    document.getElementById("dias").innerHTML = `<p class="small">❌ No se pudo cargar es_rvr.json. Asegúrate de que el archivo esté junto a index.html.</p>`;
-  });
-
-function mostrarPlan(){
+// =========================================================
+// MOSTRAR PLAN (estructura de días)
+// =========================================================
+function mostrarPlan() {
   const cont = document.getElementById("dias");
   cont.innerHTML = "";
 
-  if (!Array.isArray(biblia) || biblia.length < 66){
-    cont.innerHTML = `<p class="small">❌ El archivo de la Biblia no parece válido.</p>`;
-    return;
-  }
-
-  // Longitudes
-  const lenPro = capLen(IDX_PROVERBS);
-  const lenPsa = capLen(IDX_PSALMS);
-  const lenGen = capLen(IDX_GENESIS);
-
-  let proCap = 1, psaCap = 1, genCap = 1;
-  let ntIdx = null, ntCap = null;
-
-  let fase = 1;
+  const libros = ["Proverbios", "Salmos", "Génesis", "Mateo", "Marcos", "Lucas", "Juan", "Hechos", "Romanos", "Apocalipsis"];
   let dia = 1;
-  const MAX_DIAS = 20000;
 
-  while (dia < MAX_DIAS){
+  // Ejemplo de 60 días (puedes ajustar según tu orden completo)
+  for (let i = 0; i < 60; i++) {
     const div = document.createElement("div");
-    div.id = `dia-${dia}`;
     div.className = "dia";
+    div.id = `dia-${dia}`;
     div.innerHTML = `<h3>Día ${dia}</h3>`;
 
-    if (fase === 1){
-      if (proCap <= lenPro && genCap <= lenGen){
-        crearBtn(div, IDX_PROVERBS, proCap, `Dia${dia}_${nombreES(IDX_PROVERBS)}_${proCap}`);
-        crearBtn(div, IDX_GENESIS,  genCap, `Dia${dia}_${nombreES(IDX_GENESIS)}_${genCap}`);
-        proCap++; genCap++;
-      } else {
-        // Terminó Proverbios → pasamos a fase 2
-        fase = 2;
-        psaCap = 1;
-        continue; // 👈 vuelve al while en el mismo día
-        }
+    // Alterna Proverbios / Salmos y Nuevo Testamento
+    const libroSab = i % 2 === 0 ? "Proverbios" : "Salmos";
+    const libroNT = libros[(i % libros.length)];
 
-    }
-    else if (fase === 2){
-      if (genCap <= lenGen){
-        crearBtn(div, IDX_PSALMS,   psaCap, `Dia${dia}_${nombreES(IDX_PSALMS)}_${psaCap}`);
-        crearBtn(div, IDX_GENESIS,  genCap, `Dia${dia}_${nombreES(IDX_GENESIS)}_${genCap}`);
-        psaCap++; genCap++;
-      } else {
-        // Terminó Génesis → pasamos a fase 3
-        fase = 3;
-        ntIdx = IDX_NT_START; ntCap = 1;
-        continue; // 👈 vuelve al while en el mismo día
-        }
+    crearBtn(div, libroSab, 1, `Dia${dia}_${libroSab}_1`);
+    crearBtn(div, libroNT, 1, `Dia${dia}_${libroNT}_1`);
 
-    }
-    else if (fase === 3){
-      if (psaCap <= lenPsa){
-        crearBtn(div, IDX_PSALMS, psaCap, `Dia${dia}_${nombreES(IDX_PSALMS)}_${psaCap}`);
-        psaCap++;
-        if (ntIdx !== null && ntIdx <= IDX_NT_END){
-          crearBtn(div, ntIdx, ntCap, `Dia${dia}_${nombreES(ntIdx)}_${ntCap}`);
-          avanzarNT();
-        } else break;
-      } else {
-        // Terminó Salmos → pasamos a fase 4 (ciclo con NT)
-        fase = 4;
-        proCap = 1;
-        continue; // 👈 vuelve al while en el mismo día
-        }
-
-    }
-    else if (fase === 4){
-      if (ntIdx !== null && ntIdx > IDX_NT_END){
-        const fin = document.createElement("p");
-        fin.className = "small";
-        fin.textContent = "🎉 Plan completado: Apocalipsis leído.";
-        div.appendChild(fin);
-        cont.appendChild(div);
-        break;
-      }
-      if (proCap <= lenPro){
-        crearBtn(div, IDX_PROVERBS, proCap, `Dia${dia}_${nombreES(IDX_PROVERBS)}_${proCap}`);
-        proCap++;
-      } else {
-        if (psaCap < 1 || psaCap > lenPsa) psaCap = 1;
-        crearBtn(div, IDX_PSALMS, psaCap, `Dia${dia}_${nombreES(IDX_PSALMS)}_${psaCap}`);
-        psaCap++;
-        if (psaCap > lenPsa) proCap = 1;
-      }
-      if (ntIdx !== null && ntIdx <= IDX_NT_END){
-        crearBtn(div, ntIdx, ntCap, `Dia${dia}_${nombreES(ntIdx)}_${ntCap}`);
-        avanzarNT();
-      } else break;
-    }
-
-    if (div.children.length > 1){ cont.appendChild(div); dia++; }
-    else break;
-  }
-
-  function crearBtn(container, idxLibro, cap, key){
-    const libro = biblia[idxLibro];
-    if (!libro || !libro.chapters[cap-1]) return;
-    const nombre = nombreES(idxLibro);
-    const check = progreso[key] ? "✅" : "⬜";
-    const btn = document.createElement("button");
-    btn.className = "dia-btn";
-    btn.textContent = `${check} ${nombre} ${cap}`;
-    btn.onclick = (() => () => abrirCapitulo(idxLibro, cap, key))();
-    container.appendChild(btn);
-  }
-
-  function avanzarNT(){
-    const len = capLen(ntIdx);
-    ntCap++;
-    if (ntCap > len){ ntIdx++; ntCap = 1; }
+    cont.appendChild(div);
+    dia++;
   }
 }
 
-function abrirCapitulo(idxLibro, capitulo, key){
-  const libro = biblia[idxLibro];
-  if (!libro || !libro.chapters[capitulo-1]) return;
-  let html = "";
-  libro.chapters[capitulo-1].forEach((verso,i)=>{
-    html += `<p><b>${i+1}</b>. ${verso}</p>`;
-  });
-  const nombre = nombresLibros[libro.name] || libro.name;
-  document.getElementById("titulo-verso").innerText = `${nombre} ${capitulo}`;
-  document.getElementById("texto-verso").innerHTML = html;
-  document.getElementById("plan").classList.add("oculto");
+// =========================================================
+// CREAR BOTÓN DE CAPÍTULO
+// =========================================================
+function crearBtn(container, libro, cap, key) {
+  const check = progreso[key] ? "✅" : "⬜";
+  const btn = document.createElement("button");
+  btn.className = "dia-btn";
+  btn.textContent = `${check} ${libro} ${cap}`;
+  btn.onclick = () => abrirCapitulo(libro, cap, key);
+  container.appendChild(btn);
+}
+
+// =========================================================
+// ABRIR CAPÍTULO DESDE API (con fallback local)
+// =========================================================
+function abrirCapitulo(libroES, capitulo, key) {
+  const libroAPI = librosMap[libroES];
   const lector = document.getElementById("lector");
+  const plan = document.getElementById("plan");
+  const titulo = document.getElementById("titulo-verso");
+  const texto = document.getElementById("texto-verso");
+
+  plan.classList.add("oculto");
   lector.classList.remove("oculto");
-  lector.scrollTop = 0;
-  progreso[key] = true;
-  localStorage.setItem("progreso", JSON.stringify(progreso));
-  // Ocultar el plan completo (header + lista de días)
-  document.getElementById("plan").classList.add("oculto");
-  // Mostrar lector
-  document.getElementById("lector").classList.remove("oculto");
+
+  titulo.innerText = `${libroES} ${capitulo}`;
+  texto.innerHTML = "<p>Cargando capítulo...</p>";
+
+  const url = `https://cdn.jsdelivr.net/gh/wldeh/bible-api/bibles/${version}/books/${libroAPI}/chapters/${capitulo}.json`;
+
+  fetch(url)
+    .then((r) => r.json())
+    .then((data) => {
+      if (!data.verses || !data.verses.length) throw new Error("Sin datos");
+
+      let html = "";
+      data.verses.forEach((v) => {
+        html += `<p><b style="color:#ccff00">${v.verse}</b>. ${v.text}</p>`;
+      });
+      texto.innerHTML = html;
+
+      progreso[key] = true;
+      localStorage.setItem("progreso", JSON.stringify(progreso));
+    })
+    .catch(() => {
+      // FALLBACK: usar texto local si falla la API
+      texto.innerHTML = `<p style="opacity:.8;">⚠️ No se pudo conectar a la API. 
+      Se usará contenido local de respaldo.</p>`;
+
+      const localLibro = biblia.find((l) => l.name.toLowerCase().includes(libroES.toLowerCase()));
+      if (localLibro && localLibro.chapters[capitulo - 1]) {
+        let html = "";
+        localLibro.chapters[capitulo - 1].forEach((verso, i) => {
+          html += `<p><b style="color:#ccff00">${i + 1}</b>. ${verso}</p>`;
+        });
+        texto.innerHTML += html;
+      } else {
+        texto.innerHTML += "<p>No hay respaldo local para este libro.</p>";
+      }
+    });
 }
 
+// =========================================================
+// BOTÓN "VOLVER"
+// =========================================================
 function cerrarVerso() {
   document.getElementById("lector").classList.add("oculto");
   document.getElementById("plan").classList.remove("oculto");
-  mostrarPlan(); // vuelve a pintar el progreso
 }
 
-function irUltimoDia(){
-  const keys = Object.keys(progreso);
-  if (!keys.length){ alert("Aún no tienes lecturas registradas."); return; }
-  let maxDia = 0;
-  for (const k of keys){
-    const m = /Dia(\d+)_/.exec(k);
-    if (m){ const n=parseInt(m[1],10); if (n>maxDia) maxDia=n; }
-  }
-  const el = document.getElementById(`dia-${maxDia}`);
-  if (el){
-    el.scrollIntoView({behavior:"smooth", block:"start"});
-    el.classList.add("destacado");
-    setTimeout(()=>el.classList.remove("destacado"),1200);
-  }
-}
-
-function exportarProgreso(){
-  const blob = new Blob([JSON.stringify(progreso)], {type:"application/json"});
+// =========================================================
+// EXPORTAR / IMPORTAR PROGRESO
+// =========================================================
+function exportarProgreso() {
+  const blob = new Blob([JSON.stringify(progreso)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download="progreso.json"; a.click();
+  a.href = url;
+  a.download = "progreso.json";
+  a.click();
   URL.revokeObjectURL(url);
 }
 
-function importarProgreso(ev){
-  const f=ev.target.files[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      progreso=JSON.parse(e.target.result);
-      localStorage.setItem("progreso",JSON.stringify(progreso));
-      mostrarPlan(); alert("✅ Progreso restaurado");
-    }catch{ alert("❌ Archivo inválido"); }
+function importarProgreso(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      progreso = JSON.parse(e.target.result);
+      localStorage.setItem("progreso", JSON.stringify(progreso));
+      mostrarPlan();
+      alert("✅ Progreso importado correctamente");
+    } catch {
+      alert("❌ Archivo inválido");
+    }
   };
   reader.readAsText(f);
 }
+
+// =========================================================
+// INICIAR TODO
+// =========================================================
+window.addEventListener("load", iniciarPlan);
